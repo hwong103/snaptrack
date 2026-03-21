@@ -30,6 +30,10 @@ function fmtDate(iso: string): string {
   return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
+function fmtSource(source: LogEntry['source']): string {
+  return source === 'vision' ? 'Scan' : 'Manual';
+}
+
 function stepDate(iso: string, days: number): string {
   const d = new Date(iso + 'T12:00:00');
   d.setDate(d.getDate() + days);
@@ -74,6 +78,7 @@ export default function DayView() {
   const protein = logs.reduce((s, l) => s + (l.protein_g ?? 0), 0);
   const carbs = logs.reduce((s, l) => s + (l.carbs_g ?? 0), 0);
   const fat = logs.reduce((s, l) => s + (l.fat_g ?? 0), 0);
+  const timelineLogs = [...logs].sort((a, b) => a.logged_at - b.logged_at);
 
   // Ring math
   const circumference = 2 * Math.PI * 50;
@@ -298,36 +303,66 @@ export default function DayView() {
                 <div data-reveal className="section-heading px-1">
                   <div className="section-heading-copy">
                     <p className="text-ui-label">Meals</p>
-                    <p className="text-data-small text-zinc-100">{entryLabel}</p>
+                    <p className="text-data-small text-zinc-100">Food timeline</p>
                   </div>
                   <p className="max-w-[16ch] text-right text-body-secondary text-zinc-500">Tap a meal to edit</p>
                 </div>
 
                 <div data-reveal-stagger className="surface-panel surface-list rounded-[2rem] px-4 py-2 sm:px-5">
-                  {logs.map((entry) => (
+                  {timelineLogs.map((entry, index) => (
                     <div
                       key={entry.id}
                       data-reveal-item
-                      className="grid grid-cols-[1fr_auto] items-center gap-3 py-3"
+                      className="grid grid-cols-[auto_1fr_auto] gap-3 py-4"
                     >
+                      <div className="flex min-w-[4.5rem] flex-col items-center self-stretch">
+                        <span className="rounded-full bg-[color:color-mix(in_oklch,var(--bg-soft)_78%,black_22%)] px-2.5 py-1 text-[0.72rem] font-medium uppercase tracking-[0.12em] text-zinc-300">
+                          {fmtTime(entry.logged_at)}
+                        </span>
+                        <span className="mt-3 h-2.5 w-2.5 rounded-full bg-accent-primary" />
+                        {index < timelineLogs.length - 1 && (
+                          <span className="mt-2 w-px flex-1 bg-[color:color-mix(in_oklch,var(--panel-border)_84%,var(--accent-fresh)_16%)]" />
+                        )}
+                      </div>
+
                       <button
                         id={`edit-${entry.id}`}
                         onClick={() => openEdit(entry)}
-                        className="min-w-0 rounded-xl px-1 py-2 text-left transition-colors hover:bg-[color:color-mix(in_oklch,var(--bg-elevated)_84%,var(--accent-fresh)_16%)]"
+                        className="min-w-0 rounded-[1.25rem] px-3 py-3 text-left transition-colors hover:bg-[color:color-mix(in_oklch,var(--bg-elevated)_84%,var(--accent-fresh)_16%)]"
                       >
-                        <p className="truncate text-data-small text-zinc-100">{entry.name}</p>
-                        <div className="mt-1 flex flex-wrap items-center gap-2">
-                          <p className="text-body-secondary text-zinc-400">{fmtTime(entry.logged_at)}</p>
-                          {entry.source === 'vision' && (
-                            <span className="text-ui-label text-accent-fresh bg-[color:color-mix(in_oklch,var(--accent-fresh)_14%,transparent)] rounded px-1.5 py-0.5">
-                              Scan
-                            </span>
-                          )}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 space-y-2">
+                            <div className="space-y-1">
+                              <p className="truncate text-data-small text-zinc-100">{entry.name}</p>
+                              {entry.notes && (
+                                <p className="text-body-secondary text-zinc-400">{entry.notes}</p>
+                              )}
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="rounded-full bg-[color:color-mix(in_oklch,var(--bg-soft)_82%,black_18%)] px-2 py-1 text-[0.7rem] font-medium uppercase tracking-[0.12em] text-zinc-300">
+                                {fmtSource(entry.source)}
+                              </span>
+                              {entry.protein_g !== null && (
+                                <span className="text-body-secondary text-zinc-400">{Math.round(entry.protein_g)}g protein</span>
+                              )}
+                              {entry.carbs_g !== null && (
+                                <span className="text-body-secondary text-zinc-400">{Math.round(entry.carbs_g)}g carbs</span>
+                              )}
+                              {entry.fat_g !== null && (
+                                <span className="text-body-secondary text-zinc-400">{Math.round(entry.fat_g)}g fat</span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="shrink-0 text-right">
+                            <p className="text-data-small tabular-nums text-zinc-100">{fmtKcal(entry.calories)} kcal</p>
+                            <p className="mt-1 text-body-secondary text-zinc-500">Edit</p>
+                          </div>
                         </div>
                       </button>
 
-                      <div className="flex items-center gap-2">
-                        <span className="text-data-small tabular-nums text-zinc-300">{fmtKcal(entry.calories)} kcal</span>
+                      <div className="flex items-center gap-2 self-start pt-1">
                         <button
                           id={`delete-${entry.id}`}
                           onClick={() => handleDelete(entry.id)}

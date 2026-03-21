@@ -40,6 +40,15 @@ export function useGsapReveal(rootRef: RefObject<HTMLElement | null>, deps: unkn
           overwrite: 'auto',
         });
 
+        gsap.to(staggerGroups, {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.56,
+          ease: 'expo.out',
+          stagger: 0.06,
+          overwrite: 'auto',
+        });
+
         staggerGroups.forEach(group => {
           const items = group.querySelectorAll<HTMLElement>('[data-reveal-item]');
           if (!items.length) return;
