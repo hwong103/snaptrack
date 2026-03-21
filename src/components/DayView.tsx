@@ -40,6 +40,7 @@ function stepDate(iso: string, days: number): string {
 type Sheet =
   | null
   | 'camera'
+  | 'gallery'
   | { type: 'snap'; result: SnapResult }
   | 'manual'
   | { type: 'edit'; entry: LogEntry };
@@ -249,13 +250,22 @@ export default function DayView() {
                 >
                   Snap a meal
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setSheet('manual')}
-                  className="surface-button-secondary pressable w-full h-11 rounded-xl transition-all text-zinc-100 font-medium"
-                >
-                  Add a meal manually
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSheet('gallery')}
+                    className="surface-button-secondary pressable w-full h-11 rounded-xl transition-all text-zinc-100 font-medium"
+                  >
+                    Upload photo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSheet('manual')}
+                    className="surface-button-secondary pressable w-full h-11 rounded-xl transition-all text-zinc-100 font-medium"
+                  >
+                    Add manually
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
@@ -339,6 +349,17 @@ export default function DayView() {
             </svg>
           </button>
 
+          <button
+            id="nav-gallery"
+            onClick={() => setSheet('gallery')}
+            aria-label="Upload photo from gallery"
+            className="surface-button-secondary pressable w-11 h-11 rounded-xl flex items-center justify-center text-zinc-400 hover:text-zinc-100 transition-all"
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6.75a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6.75v12.75a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+            </svg>
+          </button>
+
           <div className="flex items-center gap-1">
             <button
               id="nav-manual"
@@ -369,6 +390,15 @@ export default function DayView() {
       {/* Sheets */}
       {sheet === 'camera' && (
         <CameraCapture
+          onResult={(r) => setSheet({ type: 'snap', result: r })}
+          onError={setErrorMsg}
+          onCancel={() => setSheet(null)}
+        />
+      )}
+
+      {sheet === 'gallery' && (
+        <CameraCapture
+          useGallery
           onResult={(r) => setSheet({ type: 'snap', result: r })}
           onError={setErrorMsg}
           onCancel={() => setSheet(null)}

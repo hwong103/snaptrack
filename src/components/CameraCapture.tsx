@@ -10,9 +10,10 @@ interface Props {
   onResult: (result: SnapResult) => void;
   onError: (msg: string) => void;
   onCancel: () => void;
+  useGallery?: boolean;
 }
 
-export default function CameraCapture({ onResult, onError, onCancel }: Props) {
+export default function CameraCapture({ onResult, onError, onCancel, useGallery }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
@@ -79,7 +80,7 @@ export default function CameraCapture({ onResult, onError, onCancel }: Props) {
           ref={inputRef}
           type="file"
           accept="image/*"
-          capture="environment"
+          capture={useGallery ? undefined : "environment"}
           onChange={handleFile}
           className="hidden"
         />
