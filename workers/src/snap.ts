@@ -44,8 +44,20 @@ async function runVision(env: Env, imageBase64: string, mimeType: string): Promi
     ],
   } as Parameters<typeof env.AI.run>[1]);
 
-  const raw = ((result as { response: string }).response ?? '').trim();
-  console.log('Worker: AI Response received', { length: raw.length, rawPreview: raw.slice(0, 100) });
+  console.log('Worker: AI raw result type:', typeof result);
+  
+  let responseText = '';
+  if (typeof result === 'string') {
+    responseText = result;
+  } else if (result && typeof (result as any).response === 'string') {
+    responseText = (result as any).response;
+  } else {
+    // Some models return objects that need stringification or have different keys
+    responseText = JSON.stringify(result);
+  }
+
+  const raw = responseText.trim();
+  console.log('Worker: AI Response processed', { length: raw.length, rawPreview: raw.slice(0, 100) });
   return raw;
 }
 
