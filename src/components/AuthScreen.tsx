@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { authClient } from '../services/authClient';
 
+function getCallbackURL() {
+  return `${window.location.origin}/`;
+}
+
 export default function AuthScreen() {
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
@@ -13,7 +17,7 @@ export default function AuthScreen() {
     setSending(true);
     setError(null);
     try {
-      await authClient.signIn.magicLink({ email, callbackURL: '/' });
+      await authClient.signIn.magicLink({ email, callbackURL: getCallbackURL() });
       setSent(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to send sign-in link');
@@ -25,7 +29,7 @@ export default function AuthScreen() {
   async function handleGoogle() {
     setError(null);
     try {
-      await authClient.signIn.social({ provider: 'google', callbackURL: '/' });
+      await authClient.signIn.social({ provider: 'google', callbackURL: getCallbackURL() });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Google sign-in failed');
     }
