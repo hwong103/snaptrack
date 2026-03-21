@@ -58,7 +58,7 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin') || env.FRONTEND_URL;
-    const auth = createAuth(env, url.origin);
+    const auth = createAuth(env);
     const method = request.method;
 
     if (method === 'OPTIONS') {

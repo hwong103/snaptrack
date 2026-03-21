@@ -6,7 +6,7 @@
   "keep_vars": true,
   "vars": {
     "FRONTEND_URL": "https://snaptrack.hwong103.work",
-    "FRONTEND_PREVIEW_HOST": "snaptrack.snaptrack-worker.workers.dev"
+    "FRONTEND_PREVIEW_HOST": "workers.dev"
   },
   "d1_databases": [
     {
