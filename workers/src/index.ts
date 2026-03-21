@@ -19,13 +19,27 @@ export interface Env {
   RESEND_API_KEY: string;
   FRONTEND_URL: string;
   FRONTEND_PREVIEW_HOST?: string;
+  ADDITIONAL_FRONTEND_URLS?: string;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
 }
 
+function getConfiguredOrigins(env: Env): string[] {
+  const configured = [env.FRONTEND_URL, env.ADDITIONAL_FRONTEND_URLS]
+    .flatMap((value) => value ? value.split(',') : [])
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return [
+    ...configured,
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+  ];
+}
+
 function isAllowedOrigin(origin: string, env: Env): boolean {
   if (!origin) return false;
-  const fixed = [env.FRONTEND_URL, 'http://localhost:5173', 'http://127.0.0.1:5173'];
+  const fixed = getConfiguredOrigins(env);
   if (fixed.includes(origin)) return true;
   if (!env.FRONTEND_PREVIEW_HOST) return false;
   try {
@@ -58,7 +72,7 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin') || env.FRONTEND_URL;
-    const auth = createAuth(env);
+    const auth = createAuth(env, url.origin);
     const method = request.method;
 
     if (method === 'OPTIONS') {

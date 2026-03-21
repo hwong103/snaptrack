@@ -2,9 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { profileUpsert } from '../services/api';
-import { createAuthClient } from 'better-auth/react';
-
-const authClient = createAuthClient();
+import { authClient } from '../services/authClient';
 
 interface Props {
   onSignOut: () => Promise<void>;

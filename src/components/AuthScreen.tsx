@@ -1,10 +1,5 @@
 import { useState } from 'react';
-import { createAuthClient } from 'better-auth/react';
-import { magicLinkClient } from 'better-auth/client/plugins';
-
-const authClient = createAuthClient({
-  plugins: [magicLinkClient()],
-});
+import { authClient } from '../services/authClient';
 
 export default function AuthScreen() {
   const [email, setEmail] = useState('');

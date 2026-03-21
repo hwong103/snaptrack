@@ -9,6 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "preview:worker": "npm run build && npx wrangler dev",
+    "db:migrate:local": "npx wrangler d1 migrations apply snaptrack-db --local",
+    "db:migrate:remote": "npx wrangler d1 migrations apply snaptrack-db --remote",
     "deploy": "npm run build && npx wrangler deploy"
   },
   "dependencies": {

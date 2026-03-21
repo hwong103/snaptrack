@@ -3,21 +3,12 @@ import { magicLink } from 'better-auth/plugins';
 import { Resend } from 'resend';
 import type { Env } from './index';
 
-export function createAuth(env: Env) {
+export function createAuth(env: Env, baseURL: string) {
   const resend = new Resend(env.RESEND_API_KEY);
-  const frontendHost = new URL(env.FRONTEND_URL).hostname;
 
   return betterAuth({
-    baseURL: {
-      allowedHosts: [
-        frontendHost,
-        '*.workers.dev',
-        'localhost:*',
-        '127.0.0.1:*',
-      ],
-      protocol: 'auto',
-    },
     secret: env.BETTER_AUTH_SECRET,
+    baseURL,
     basePath: '/api/auth',
     database: env.DB,
     socialProviders: {
@@ -48,6 +39,14 @@ export function createAuth(env: Env) {
     session: {
       cookieCache: { enabled: true, maxAge: 60 * 5 },
     },
+    trustedOrigins: [
+      env.FRONTEND_URL,
+      ...(env.ADDITIONAL_FRONTEND_URLS
+        ? env.ADDITIONAL_FRONTEND_URLS.split(',').map((value) => value.trim()).filter(Boolean)
+        : []),
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+    ],
     advanced: {
       defaultCookieAttributes: { sameSite: 'none', secure: true },
     },
