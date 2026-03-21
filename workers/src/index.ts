@@ -1,0 +1,129 @@
+import type { Fetcher, D1Database, KVNamespace, Ai } from '@cloudflare/workers-types';
+import { createAuth } from './auth';
+import { handleSnap } from './snap';
+import {
+  handleLogCreate,
+  handleLogDay,
+  handleLogHistory,
+  handleLogDelete,
+  handleLogPatch,
+} from './log';
+import { handleProfileGet, handleProfileUpsert } from './profile';
+
+export interface Env {
+  ASSETS: Fetcher;
+  DB: D1Database;
+  TOKENS: KVNamespace;
+  AI: Ai;
+  BETTER_AUTH_SECRET: string;
+  RESEND_API_KEY: string;
+  FRONTEND_URL: string;
+  FRONTEND_PREVIEW_HOST?: string;
+  GOOGLE_CLIENT_ID: string;
+  GOOGLE_CLIENT_SECRET: string;
+}
+
+function isAllowedOrigin(origin: string, env: Env): boolean {
+  if (!origin) return false;
+  const fixed = [env.FRONTEND_URL, 'http://localhost:5173', 'http://127.0.0.1:5173'];
+  if (fixed.includes(origin)) return true;
+  if (!env.FRONTEND_PREVIEW_HOST) return false;
+  try {
+    const h = new URL(origin).hostname;
+    return h === env.FRONTEND_PREVIEW_HOST || h.endsWith(`.${env.FRONTEND_PREVIEW_HOST}`);
+  } catch {
+    return false;
+  }
+}
+
+export function corsHeaders(origin: string, env: Env): HeadersInit {
+  const allowedOrigin = isAllowedOrigin(origin, env) ? origin : env.FRONTEND_URL;
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Credentials': 'true',
+    'Vary': 'Origin',
+  };
+}
+
+function withCors(response: Response, origin: string, env: Env): Response {
+  const headers = new Headers(response.headers);
+  const cors = corsHeaders(origin, env);
+  Object.entries(cors).forEach(([k, v]) => headers.set(k, String(v)));
+  return new Response(response.body, { status: response.status, headers });
+}
+
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
+    const origin = request.headers.get('Origin') || env.FRONTEND_URL;
+    const auth = createAuth(env, url.origin);
+    const method = request.method;
+
+    if (method === 'OPTIONS') {
+      return new Response(null, { headers: corsHeaders(origin, env) });
+    }
+
+    try {
+      // better-auth
+      if (url.pathname.startsWith('/api/auth/')) {
+        return withCors(await auth.handler(request), origin, env);
+      }
+
+      // Session check
+      if (url.pathname === '/api/session' && method === 'GET') {
+        const session = await auth.api.getSession({ headers: request.headers }).catch(() => null);
+        return new Response(
+          JSON.stringify(
+            session
+              ? { authenticated: true, user: session.user }
+              : { authenticated: false },
+          ),
+          { headers: { ...corsHeaders(origin, env), 'Content-Type': 'application/json' } },
+        );
+      }
+
+      // Vision — ephemeral, no storage
+      if (url.pathname === '/api/snap' && method === 'POST') {
+        return handleSnap(request, env, origin, auth);
+      }
+
+      // Food log
+      if (url.pathname === '/api/log' && method === 'POST') {
+        return handleLogCreate(request, env, origin, auth);
+      }
+      if (url.pathname === '/api/day' && method === 'GET') {
+        return handleLogDay(request, env, origin, auth);
+      }
+      if (url.pathname === '/api/history' && method === 'GET') {
+        return handleLogHistory(request, env, origin, auth);
+      }
+
+      const logMatch = url.pathname.match(/^\/api\/log\/([^/]+)$/);
+      if (logMatch) {
+        const id = logMatch[1]!;
+        if (method === 'DELETE') return handleLogDelete(request, env, origin, auth, id);
+        if (method === 'PATCH') return handleLogPatch(request, env, origin, auth, id);
+      }
+
+      // Profile
+      if (url.pathname === '/api/profile') {
+        if (method === 'GET') return handleProfileGet(request, env, origin, auth);
+        if (method === 'POST') return handleProfileUpsert(request, env, origin, auth);
+      }
+
+      // SPA fallback
+      return (env.ASSETS.fetch(request as any) as any) as Response;
+    } catch (err) {
+      console.error('Worker error:', err);
+      return new Response(
+        JSON.stringify({ error: 'Internal server error' }),
+        {
+          status: 500,
+          headers: { ...corsHeaders(origin, env), 'Content-Type': 'application/json' },
+        },
+      );
+    }
+  },
+};

@@ -1,0 +1,4 @@
+BETTER_AUTH_SECRET=dev-secret-at-least-32-chars-long-change-in-prod
+RESEND_API_KEY=re_...
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=

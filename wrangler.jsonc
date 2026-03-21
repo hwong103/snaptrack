@@ -1,0 +1,32 @@
+{
+  "name": "snaptrack",
+  "main": "./workers/src/index.ts",
+  "compatibility_date": "2026-03-19",
+  "compatibility_flags": ["nodejs_compat"],
+  "keep_vars": true,
+  "vars": {
+    "FRONTEND_URL": "https://snaptrack.hwong103.work",
+    "FRONTEND_PREVIEW_HOST": "snaptrack.snaptrack-worker.workers.dev"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "snaptrack-db",
+      "database_id": "REPLACE_AFTER_CREATE",
+      "migrations_dir": "./workers/migrations"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "TOKENS",
+      "id": "REPLACE_AFTER_CREATE"
+    }
+  ],
+  "ai": {
+    "binding": "AI"
+  },
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}
