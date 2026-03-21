@@ -84,10 +84,16 @@ export async function handleSnap(
       raw = await runVision(env, body.imageBase64, body.mimeType);
     } catch (err: any) {
       // Handle the "submit the prompt 'agree'" error (Cloudflare Workers AI 5016)
-      if (typeof err?.message === 'string' && (err.message.includes("prompt 'agree'") || err.message.includes('5016'))) {
+      const msg = String(err?.message || '');
+      if (msg.includes("prompt 'agree'") || msg.includes('5016')) {
         console.log('Worker: License agreement required. Sending "agree"...');
-        await env.AI.run('@cf/meta/llama-3.2-11b-vision-instruct' as any, { prompt: 'agree' });
-        console.log('Worker: Agreement sent. Retrying vision task...');
+        try {
+          await env.AI.run('@cf/meta/llama-3.2-11b-vision-instruct' as any, { prompt: 'agree' });
+        } catch (e: any) {
+          // The 'agree' prompt itself might "fail" with a 5016 success message - ignore it
+          console.log('Worker: Agreement response (ignoring if looks successful):', e?.message);
+        }
+        console.log('Worker: Agreement phase done. Retrying vision task...');
         raw = await runVision(env, body.imageBase64, body.mimeType);
       } else {
         throw err;
