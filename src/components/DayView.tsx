@@ -8,6 +8,8 @@ import CameraCapture from './CameraCapture';
 import SnapResultSheet from './SnapResult';
 import ManualEntry from './ManualEntry';
 import { useModalDialog } from '../hooks/useModalDialog';
+import { useGsapOverlay } from '../hooks/useGsapOverlay';
+import { useGsapReveal } from '../hooks/useGsapReveal';
 
 // Helpers
 function todayISO(): string {
@@ -43,6 +45,7 @@ type Sheet =
   | { type: 'edit'; entry: LogEntry };
 
 export default function DayView() {
+  const rootRef = useRef<HTMLElement>(null);
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(todayISO());
   const { data, loading, error, refresh } = useDay(selectedDate);
@@ -55,6 +58,7 @@ export default function DayView() {
   const [editCalories, setEditCalories] = useState('');
   const [editSaving, setEditSaving] = useState(false);
   const editNameInputRef = useRef<HTMLInputElement>(null);
+  const editBackdropRef = useRef<HTMLButtonElement>(null);
 
   // Computed
   const logs = data?.logs ?? [];
@@ -63,6 +67,7 @@ export default function DayView() {
   const remainingKcal = data?.remaining_kcal ?? goalKcal;
   const isOver = remainingKcal < 0;
   const pct = goalKcal > 0 ? totalKcal / goalKcal : 0;
+  const entryLabel = `${logs.length} ${logs.length === 1 ? 'meal' : 'meals'}`;
 
   const protein = logs.reduce((s, l) => s + (l.protein_g ?? 0), 0);
   const carbs = logs.reduce((s, l) => s + (l.carbs_g ?? 0), 0);
@@ -111,15 +116,22 @@ export default function DayView() {
     editNameInputRef,
   );
 
+  useGsapReveal(rootRef, [selectedDate, loading, logs.length]);
+  useGsapOverlay(
+    sheet !== null && typeof sheet === 'object' && sheet.type === 'edit',
+    editBackdropRef,
+    editDialogRef,
+  );
+
   return (
-    <main className="min-h-dvh pb-24 max-w-md mx-auto px-4">
+    <main ref={rootRef} className="min-h-dvh pb-28 max-w-md mx-auto px-4">
       {/* Header — date navigation */}
-      <header className="flex items-center justify-between py-4 safe-top">
+      <header className="flex items-center justify-between pt-3 pb-6 safe-top">
         <button
           id="day-prev"
           onClick={() => setSelectedDate(d => stepDate(d, -1))}
           aria-label="Previous day"
-          className="w-11 h-11 rounded-xl bg-zinc-900 flex items-center justify-center hover:bg-zinc-800 active:scale-95 transition-all"
+          className="surface-button-secondary w-11 h-11 rounded-xl flex items-center justify-center active:scale-95 transition-all"
         >
           <svg className="w-5 h-5 text-zinc-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -128,7 +140,7 @@ export default function DayView() {
         <button
           id="day-today"
           onClick={() => setSelectedDate(todayISO())}
-          className="text-sm font-medium text-zinc-200 hover:text-emerald-400 transition-colors"
+          className="text-data-small text-zinc-100 hover:text-[var(--accent-fresh)] transition-colors"
         >
           {fmtDate(selectedDate)}
         </button>
@@ -136,7 +148,7 @@ export default function DayView() {
           id="day-next"
           onClick={() => setSelectedDate(d => stepDate(d, 1))}
           aria-label="Next day"
-          className="w-11 h-11 rounded-xl bg-zinc-900 flex items-center justify-center hover:bg-zinc-800 active:scale-95 transition-all"
+          className="surface-button-secondary w-11 h-11 rounded-xl flex items-center justify-center active:scale-95 transition-all"
         >
           <svg className="w-5 h-5 text-zinc-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -158,7 +170,7 @@ export default function DayView() {
       )}
 
       {errorMsg && (
-        <div className="mb-4 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400 text-center">
+        <div className="mb-4 rounded-lg bg-[color:color-mix(in_oklch,var(--accent-danger)_16%,transparent)] px-3 py-2 text-sm text-[color:color-mix(in_oklch,var(--accent-danger)_75%,white_25%)] text-center">
           {errorMsg}
           <button
             onClick={() => setErrorMsg(null)}
@@ -172,82 +184,108 @@ export default function DayView() {
 
       {!loading && !error && data && (
         <>
-          {/* Calorie ring */}
-          <div className="flex flex-col items-center py-6">
-            <svg viewBox="0 0 120 120" className="w-40 h-40">
-              <circle cx={60} cy={60} r={50} fill="none" stroke="#27272a" strokeWidth={10} />
-              <circle
-                cx={60}
-                cy={60}
-                r={50}
-                fill="none"
-                stroke={ringColor}
-                strokeWidth={10}
-                strokeLinecap="round"
-                strokeDasharray={circumference}
-                strokeDashoffset={dashOffset}
-                transform="rotate(-90 60 60)"
-                className="transition-all duration-700 ease-out"
-              />
-              <text x={60} y={55} textAnchor="middle" className="fill-zinc-50 text-2xl font-bold" style={{ fontSize: '24px', fontWeight: 700 }}>
-                {fmtKcal(totalKcal)}
-              </text>
-              <text x={60} y={72} textAnchor="middle" className="fill-zinc-400" style={{ fontSize: '11px' }}>
-                kcal
-              </text>
-            </svg>
+          <section data-reveal className="surface-panel rounded-[2rem] px-5 py-5 mb-8">
+            <div className="grid grid-cols-[auto,1fr] items-center gap-5">
+              <svg viewBox="0 0 120 120" className="w-32 h-32">
+                <circle cx={60} cy={60} r={50} fill="none" stroke="color-mix(in oklch, var(--bg-soft) 86%, white 14%)" strokeWidth={10} />
+                <circle
+                  cx={60}
+                  cy={60}
+                  r={50}
+                  fill="none"
+                  stroke={ringColor}
+                  strokeWidth={10}
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={dashOffset}
+                  transform="rotate(-90 60 60)"
+                  className="transition-all duration-700 ease-out"
+                />
+                <text x={60} y={55} textAnchor="middle" className="fill-zinc-50 text-2xl font-bold" style={{ fontSize: '24px', fontWeight: 700 }}>
+                  {fmtKcal(totalKcal)}
+                </text>
+                <text x={60} y={72} textAnchor="middle" className="fill-[var(--text-secondary-color)]" style={{ fontSize: '12px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                  kcal
+                </text>
+              </svg>
 
-            <p className={`text-sm mt-3 font-medium ${isOver ? 'text-red-400' : 'text-zinc-400'}`}>
-              {isOver
-                ? `${fmtKcal(Math.abs(remainingKcal))} kcal over goal`
-                : `${fmtKcal(remainingKcal)} kcal remaining`}
-            </p>
-          </div>
-
-          {/* Macro pills */}
-          <div className="flex justify-center gap-2 mb-6">
-            <span className="px-3 py-1.5 rounded-full bg-zinc-800/80 text-xs text-zinc-300 font-medium">
-              {Math.round(protein)}g protein
-            </span>
-            <span className="px-3 py-1.5 rounded-full bg-zinc-800/80 text-xs text-zinc-300 font-medium">
-              {Math.round(carbs)}g carbs
-            </span>
-            <span className="px-3 py-1.5 rounded-full bg-zinc-800/80 text-xs text-zinc-300 font-medium">
-              {Math.round(fat)}g fat
-            </span>
-          </div>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <p className="text-ui-label">Today</p>
+                  <p className={`text-screen-title ${isOver ? 'text-[var(--accent-danger)]' : 'text-zinc-50'}`}>
+                    {isOver
+                      ? `${fmtKcal(Math.abs(remainingKcal))} over`
+                      : `${fmtKcal(remainingKcal)} left`}
+                  </p>
+                  <p className="text-body-secondary text-zinc-400">
+                    Goal {fmtKcal(goalKcal)} kcal
+                  </p>
+                </div>
+                <p className="text-body-secondary text-zinc-300">
+                  {Math.round(protein)}g protein · {Math.round(carbs)}g carbs · {Math.round(fat)}g fat
+                </p>
+              </div>
+            </div>
+          </section>
 
           {/* Log list */}
           {logs.length === 0 ? (
-            <div className="text-center py-12 space-y-2">
-              <div className="mx-auto w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text-zinc-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <div data-reveal className="text-center py-12 space-y-3">
+              <div data-reveal-float className="surface-panel mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-accent-warm" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
                 </svg>
               </div>
-              <p className="text-zinc-400 text-sm">Nothing logged yet</p>
-              <p className="text-zinc-500 text-xs">Snap a photo or add manually</p>
+              <p className="text-body-secondary text-zinc-400">Nothing logged yet</p>
+              <p className="text-body-secondary text-zinc-500 max-w-[30ch] mx-auto">
+                Snap a meal to estimate calories in seconds, or start with a quick manual entry.
+              </p>
+              <div className="flex flex-col gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setSheet('camera')}
+                  className="bg-accent-primary pressable w-full h-12 rounded-xl hover:brightness-110 transition-all text-slate-950 font-medium"
+                >
+                  Snap a meal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSheet('manual')}
+                  className="surface-button-secondary pressable w-full h-11 rounded-xl transition-all text-zinc-100 font-medium"
+                >
+                  Add a meal manually
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="space-y-2">
-              {logs.map(entry => (
+            <section className="space-y-3">
+              <div data-reveal className="flex items-end justify-between px-1">
+                <div>
+                  <p className="text-ui-label">Meals</p>
+                  <p className="text-data-small text-zinc-100">{entryLabel}</p>
+                </div>
+                <p className="text-body-secondary text-zinc-500">Tap a meal to edit</p>
+              </div>
+              <div data-reveal-stagger className="space-y-3">
+              {logs.map((entry) => (
                 <div
                   key={entry.id}
-                  className="group flex items-center gap-3 rounded-xl bg-zinc-900/60 border border-zinc-800/50 px-4 py-3 hover:bg-zinc-800/40 transition-colors"
+                  data-reveal-item
+                  className="surface-panel group flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-[color:color-mix(in_oklch,var(--bg-elevated)_86%,var(--accent-fresh)_14%)] transition-colors"
                 >
                   <button
                     id={`edit-${entry.id}`}
                     onClick={() => openEdit(entry)}
                     className="flex-1 text-left min-w-0"
                   >
-                    <p className="font-medium text-zinc-100 truncate text-sm">{entry.name}</p>
-                    <p className="text-xs text-zinc-400 mt-0.5">{fmtTime(entry.logged_at)}</p>
+                    <p className="text-data-small text-zinc-100 truncate">{entry.name}</p>
+                    <p className="text-body-secondary text-zinc-400 mt-0.5">{fmtTime(entry.logged_at)}</p>
                   </button>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-sm text-zinc-300 tabular-nums">{fmtKcal(entry.calories)} kcal</span>
+                    <span className="text-data-small text-zinc-300 tabular-nums">{fmtKcal(entry.calories)} kcal</span>
                     {entry.source === 'vision' && (
-                      <span className="text-[10px] font-semibold text-emerald-500 bg-emerald-500/10 rounded px-1.5 py-0.5">
+                      <span className="text-ui-label text-accent-fresh bg-[color:color-mix(in_oklch,var(--accent-fresh)_14%,transparent)] rounded px-1.5 py-0.5">
                         Scan
                       </span>
                     )}
@@ -269,19 +307,20 @@ export default function DayView() {
                   </div>
                 </div>
               ))}
-            </div>
+              </div>
+            </section>
           )}
         </>
       )}
 
       {/* Bottom action bar */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-zinc-950/90 backdrop-blur-xl border-t border-zinc-800/50 safe-bottom">
+      <nav data-reveal className="fixed bottom-0 left-0 right-0 bg-[color:color-mix(in_oklch,var(--bg-base)_82%,black_18%)] backdrop-blur-xl border-t border-[color:color-mix(in_oklch,var(--panel-border)_80%,black_20%)] safe-bottom">
         <div className="max-w-md mx-auto flex items-center justify-between px-6 py-3">
           <button
             id="nav-history"
             onClick={() => navigate('/history')}
             aria-label="View history"
-            className="w-11 h-11 rounded-xl flex items-center justify-center text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-all"
+            className="surface-button-secondary pressable w-11 h-11 rounded-xl flex items-center justify-center text-zinc-400 hover:text-zinc-100 transition-all"
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
@@ -292,7 +331,7 @@ export default function DayView() {
             id="nav-camera"
             onClick={() => setSheet('camera')}
             aria-label="Capture food photo"
-            className="w-16 h-16 -mt-6 rounded-full bg-emerald-600 hover:bg-emerald-500 active:scale-90 transition-all flex items-center justify-center shadow-lg shadow-emerald-500/20"
+            className="bg-accent-primary pressable w-16 h-16 -mt-6 rounded-full hover:brightness-110 transition-all flex items-center justify-center shadow-lg shadow-emerald-950/40"
           >
             <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
@@ -305,7 +344,7 @@ export default function DayView() {
               id="nav-manual"
               onClick={() => setSheet('manual')}
               aria-label="Add food manually"
-              className="w-11 h-11 rounded-xl flex items-center justify-center text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-all"
+              className="surface-button-secondary pressable w-11 h-11 rounded-xl flex items-center justify-center text-zinc-400 hover:text-zinc-100 transition-all"
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -316,7 +355,7 @@ export default function DayView() {
               id="nav-settings"
               onClick={() => navigate('/settings')}
               aria-label="Open settings"
-              className="w-11 h-11 rounded-xl flex items-center justify-center text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-all"
+              className="surface-button-secondary pressable w-11 h-11 rounded-xl flex items-center justify-center text-zinc-400 hover:text-zinc-100 transition-all"
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
@@ -363,6 +402,7 @@ export default function DayView() {
       {sheet && typeof sheet === 'object' && sheet.type === 'edit' && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <button
+            ref={editBackdropRef}
             type="button"
             aria-label="Close edit entry"
             className="absolute inset-0 bg-black/60"
@@ -373,36 +413,36 @@ export default function DayView() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="edit-entry-title"
-            className="relative w-full max-w-md rounded-t-2xl bg-zinc-900 border-t border-zinc-800 px-6 pt-6 pb-8 safe-bottom space-y-4 animate-[slideUp_0.3s_ease-out]"
+            className="surface-panel relative w-full max-w-md rounded-t-2xl px-6 pt-6 pb-8 safe-bottom space-y-4"
             tabIndex={-1}
           >
             <div className="w-10 h-1 rounded-full bg-zinc-700 mx-auto -mt-1" />
-            <h3 id="edit-entry-title" className="text-lg font-bold text-zinc-50">Edit entry</h3>
+            <h3 id="edit-entry-title" className="text-screen-title text-zinc-50">Edit entry</h3>
             <div>
-              <label htmlFor="edit-name" className="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Name</label>
+              <label htmlFor="edit-name" className="text-ui-label block text-zinc-400 mb-1.5">Name</label>
               <input
                 ref={editNameInputRef}
                 id="edit-name"
                 value={editName}
                 onChange={e => setEditName(e.target.value)}
-                className="w-full h-11 rounded-xl bg-zinc-800 border border-zinc-700 px-4 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all"
+                className="surface-field w-full h-11 rounded-xl border px-4 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all"
               />
             </div>
             <div>
-              <label htmlFor="edit-calories" className="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Calories</label>
+              <label htmlFor="edit-calories" className="text-ui-label block text-zinc-400 mb-1.5">Calories</label>
               <input
                 id="edit-calories"
                 type="number"
                 value={editCalories}
                 onChange={e => setEditCalories(e.target.value)}
-                className="w-full h-11 rounded-xl bg-zinc-800 border border-zinc-700 px-4 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all"
+                className="surface-field w-full h-11 rounded-xl border px-4 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all"
               />
             </div>
             <div className="flex gap-3 pt-2">
               <button
                 id="edit-cancel"
                 onClick={() => setSheet(null)}
-                className="flex-1 h-12 rounded-xl bg-zinc-800 hover:bg-zinc-700 active:scale-[0.98] transition-all text-zinc-300 font-medium"
+                className="surface-button-secondary pressable flex-1 h-12 rounded-xl transition-all text-zinc-100 font-medium"
               >
                 Cancel
               </button>
@@ -410,7 +450,7 @@ export default function DayView() {
                 id="edit-save"
                 onClick={() => handleEditSave(sheet.entry.id)}
                 disabled={editSaving}
-                className="flex-1 h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] disabled:opacity-40 transition-all text-white font-medium"
+                className="bg-accent-primary pressable flex-1 h-12 rounded-xl hover:brightness-110 disabled:opacity-40 transition-all text-slate-950 font-medium"
               >
                 {editSaving ? (
                   <span className="flex items-center justify-center gap-2">

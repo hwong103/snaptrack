@@ -1,19 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,600;6..72,700&display=swap');
 @import "tailwindcss";
 
 :root {
   color-scheme: dark;
+  --font-ui: "Instrument Sans", "Segoe UI", sans-serif;
+  --font-display: "Newsreader", Georgia, serif;
+  --bg-base: oklch(0.15 0.018 235);
+  --bg-elevated: oklch(0.2 0.02 232);
+  --bg-soft: oklch(0.24 0.018 230);
+  --panel-border: oklch(0.32 0.022 225 / 0.7);
+  --text-primary: oklch(0.96 0.01 95);
+  --text-secondary-color: oklch(0.74 0.02 212);
+  --text-muted: oklch(0.62 0.016 220);
+  --accent-fresh: oklch(0.73 0.15 162);
+  --accent-fresh-strong: oklch(0.65 0.15 162);
+  --accent-warm: oklch(0.77 0.12 72);
+  --accent-warm-strong: oklch(0.69 0.13 58);
+  --accent-danger: oklch(0.68 0.19 22);
+  --text-caption: 0.75rem;
+  --text-secondary: 0.875rem;
+  --text-body: 1rem;
+  --text-subheading: 1.375rem;
+  --text-heading: 2rem;
+  --leading-caption: 1.35;
+  --leading-secondary: 1.45;
+  --leading-body: 1.6;
+  --leading-subheading: 1.2;
+  --leading-heading: 1.08;
+  --tracking-label: 0.14em;
+  --tracking-tight: -0.025em;
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 * {
   -webkit-tap-highlight-color: transparent;
+  font-kerning: normal;
 }
 
 body {
-  background-color: #09090b;
-  color: #f4f4f5;
-  font-family: system-ui, -apple-system, sans-serif;
+  background:
+    radial-gradient(circle at top, color-mix(in oklch, var(--accent-fresh) 10%, transparent) 0%, transparent 34%),
+    radial-gradient(circle at 80% 20%, color-mix(in oklch, var(--accent-warm) 9%, transparent) 0%, transparent 28%),
+    linear-gradient(180deg, color-mix(in oklch, var(--bg-base) 92%, black 8%) 0%, var(--bg-base) 100%);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
+  text-rendering: optimizeLegibility;
 }
 
 button,
@@ -23,11 +59,149 @@ textarea {
   font: inherit;
 }
 
+h1,
+h2,
+h3,
+h4 {
+  letter-spacing: var(--tracking-tight);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.text-screen-title {
+  font-size: var(--text-subheading);
+  line-height: var(--leading-subheading);
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+}
+
+.text-hero-title {
+  font-size: var(--text-heading);
+  line-height: var(--leading-heading);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+}
+
+.text-body-secondary {
+  font-size: var(--text-secondary);
+  line-height: var(--leading-secondary);
+  color: var(--text-secondary-color);
+}
+
+.text-ui-label {
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--accent-warm) 52%, var(--text-muted) 48%);
+}
+
+.text-data-large {
+  font-size: 3.25rem;
+  line-height: 0.95;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.text-data-medium {
+  font-size: 1.875rem;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.text-data-small {
+  font-size: 0.9375rem;
+  line-height: 1.25;
+  font-weight: 500;
+}
+
+.surface-panel {
+  background:
+    linear-gradient(180deg, color-mix(in oklch, var(--bg-elevated) 90%, white 2%) 0%, color-mix(in oklch, var(--bg-elevated) 96%, black 4%) 100%);
+  border: 1px solid var(--panel-border);
+  box-shadow: inset 0 1px 0 color-mix(in oklch, white 7%, transparent);
+  transition:
+    transform 280ms var(--ease-out-quart),
+    background 280ms var(--ease-out-quart),
+    border-color 280ms var(--ease-out-quart),
+    box-shadow 280ms var(--ease-out-quart);
+}
+
+.surface-field {
+  background: color-mix(in oklch, var(--bg-soft) 82%, black 18%);
+  border-color: color-mix(in oklch, var(--panel-border) 88%, black 12%);
+}
+
+.surface-button-secondary {
+  background: color-mix(in oklch, var(--bg-soft) 72%, black 28%);
+  border: 1px solid color-mix(in oklch, var(--panel-border) 80%, black 20%);
+  transition:
+    transform 180ms var(--ease-out-quart),
+    background 220ms var(--ease-out-quart),
+    border-color 220ms var(--ease-out-quart),
+    color 220ms var(--ease-out-quart);
+}
+
+.surface-button-secondary:hover {
+  background: color-mix(in oklch, var(--bg-soft) 84%, var(--accent-fresh) 16%);
+  transform: translateY(-1px);
+}
+
+.bg-accent-primary {
+  background: linear-gradient(135deg, var(--accent-fresh) 0%, var(--accent-fresh-strong) 100%);
+}
+
+.bg-accent-warm {
+  background: linear-gradient(135deg, var(--accent-warm) 0%, var(--accent-warm-strong) 100%);
+}
+
+.text-accent-fresh {
+  color: var(--accent-fresh);
+}
+
+.text-accent-warm {
+  color: var(--accent-warm);
+}
+
+.pressable {
+  transition:
+    transform 160ms var(--ease-out-quart),
+    filter 180ms var(--ease-out-quart),
+    box-shadow 220ms var(--ease-out-quart);
+}
+
+.pressable:hover {
+  transform: translateY(-1px);
+}
+
+.pressable:active {
+  transform: translateY(1px) scale(0.985);
+}
+
+.macro-protein {
+  background: color-mix(in oklch, var(--accent-fresh) 18%, var(--bg-elevated) 82%);
+  color: color-mix(in oklch, var(--accent-fresh) 62%, white 38%);
+}
+
+.macro-carbs {
+  background: color-mix(in oklch, oklch(0.7 0.1 210) 18%, var(--bg-elevated) 82%);
+  color: oklch(0.82 0.05 214);
+}
+
+.macro-fat {
+  background: color-mix(in oklch, var(--accent-warm) 18%, var(--bg-elevated) 82%);
+  color: color-mix(in oklch, var(--accent-warm) 62%, white 38%);
+}
+
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid #34d399;
+  outline: 2px solid var(--accent-fresh);
   outline-offset: 2px;
 }
 
@@ -45,15 +219,3 @@ textarea:focus-visible {
 /* Safe area insets for iPhone notch / home indicator */
 .safe-top    { padding-top: env(safe-area-inset-top); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
-
-/* Bottom sheet slide-up animation */
-@keyframes slideUp {
-  from {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}

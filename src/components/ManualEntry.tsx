@@ -21,9 +21,9 @@ export default function ManualEntry({ onConfirm, onCancel }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const newErrors: typeof errors = {};
-    if (!name.trim()) newErrors.name = 'Name is required';
+    if (!name.trim()) newErrors.name = 'Add a name so you can find this meal later.';
     if (!calories.trim() || isNaN(Number(calories)) || Number(calories) <= 0) {
-      newErrors.calories = 'Valid calorie amount required';
+      newErrors.calories = 'Enter calories as a number greater than 0.';
     }
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -64,18 +64,18 @@ export default function ManualEntry({ onConfirm, onCancel }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="manual-entry-title"
-        className="relative w-full max-w-md rounded-t-2xl bg-zinc-900 border-t border-zinc-800 px-6 pt-6 pb-8 safe-bottom space-y-5 animate-[slideUp_0.3s_ease-out]"
+        className="surface-panel relative w-full max-w-md rounded-t-2xl px-6 pt-6 pb-8 safe-bottom space-y-5 animate-[slideUp_0.3s_ease-out]"
         tabIndex={-1}
       >
         {/* Drag handle */}
         <div className="w-10 h-1 rounded-full bg-zinc-700 mx-auto -mt-1" />
 
-        <h3 id="manual-entry-title" className="text-lg font-bold text-zinc-50">Add food manually</h3>
+        <h3 id="manual-entry-title" className="text-screen-title text-zinc-50">Add a meal manually</h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Name */}
           <div>
-            <label htmlFor="manual-name" className="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Food name *</label>
+            <label htmlFor="manual-name" className="text-ui-label block text-zinc-400 mb-1.5">Food name *</label>
             <input
               ref={nameInputRef}
               id="manual-name"
@@ -83,32 +83,32 @@ export default function ManualEntry({ onConfirm, onCancel }: Props) {
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="e.g. Chicken salad"
-              className={`w-full h-11 rounded-xl bg-zinc-800 border px-4 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all ${
-                errors.name ? 'border-red-500' : 'border-zinc-700'
+              className={`surface-field w-full h-11 rounded-xl border px-4 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all ${
+                errors.name ? 'border-[var(--accent-danger)]' : ''
               }`}
             />
-            {errors.name && <p className="text-xs text-red-400 mt-1">{errors.name}</p>}
+            {errors.name && <p className="text-body-secondary text-red-400 mt-1">{errors.name}</p>}
           </div>
 
           {/* Calories */}
           <div>
-            <label htmlFor="manual-calories" className="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Calories *</label>
+            <label htmlFor="manual-calories" className="text-ui-label block text-zinc-400 mb-1.5">Calories *</label>
             <input
               id="manual-calories"
               type="number"
               value={calories}
               onChange={e => setCalories(e.target.value)}
               placeholder="350"
-              className={`w-full h-11 rounded-xl bg-zinc-800 border px-4 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all ${
-                errors.calories ? 'border-red-500' : 'border-zinc-700'
+              className={`surface-field w-full h-11 rounded-xl border px-4 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all ${
+                errors.calories ? 'border-[var(--accent-danger)]' : ''
               }`}
             />
-            {errors.calories && <p className="text-xs text-red-400 mt-1">{errors.calories}</p>}
+            {errors.calories && <p className="text-body-secondary text-red-400 mt-1">{errors.calories}</p>}
           </div>
 
           {/* Macros */}
           <div>
-            <p className="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Macros (optional)</p>
+            <p className="text-ui-label block text-zinc-400 mb-1.5">Macros (optional)</p>
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label htmlFor="manual-protein" className="sr-only">Protein grams</label>
@@ -118,7 +118,7 @@ export default function ManualEntry({ onConfirm, onCancel }: Props) {
                   value={protein}
                   onChange={e => setProtein(e.target.value)}
                   placeholder="Protein g"
-                  className="w-full h-11 rounded-xl bg-zinc-800 border border-zinc-700 px-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all"
+                  className="surface-field w-full h-11 rounded-xl border px-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all"
                 />
               </div>
               <div>
@@ -129,7 +129,7 @@ export default function ManualEntry({ onConfirm, onCancel }: Props) {
                   value={carbs}
                   onChange={e => setCarbs(e.target.value)}
                   placeholder="Carbs g"
-                  className="w-full h-11 rounded-xl bg-zinc-800 border border-zinc-700 px-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all"
+                  className="surface-field w-full h-11 rounded-xl border px-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all"
                 />
               </div>
               <div>
@@ -140,7 +140,7 @@ export default function ManualEntry({ onConfirm, onCancel }: Props) {
                   value={fat}
                   onChange={e => setFat(e.target.value)}
                   placeholder="Fat g"
-                  className="w-full h-11 rounded-xl bg-zinc-800 border border-zinc-700 px-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all"
+                  className="surface-field w-full h-11 rounded-xl border px-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all"
                 />
               </div>
             </div>
@@ -152,7 +152,7 @@ export default function ManualEntry({ onConfirm, onCancel }: Props) {
               type="button"
               id="manual-cancel"
               onClick={onCancel}
-              className="flex-1 h-12 rounded-xl bg-zinc-800 hover:bg-zinc-700 active:scale-[0.98] transition-all text-zinc-300 font-medium"
+              className="surface-button-secondary flex-1 h-12 rounded-xl active:scale-[0.98] transition-all text-zinc-100 font-medium"
             >
               Cancel
             </button>
@@ -160,14 +160,14 @@ export default function ManualEntry({ onConfirm, onCancel }: Props) {
               type="submit"
               id="manual-submit"
               disabled={saving}
-              className="flex-1 h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] disabled:opacity-40 transition-all text-white font-medium"
+              className="bg-accent-primary flex-1 h-12 rounded-xl hover:brightness-110 active:scale-[0.98] disabled:opacity-40 transition-all text-slate-950 font-medium"
             >
               {saving ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 </span>
               ) : (
-                'Log'
+                'Save meal'
               )}
             </button>
           </div>

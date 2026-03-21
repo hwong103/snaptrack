@@ -41,21 +41,21 @@ export default function AuthScreen() {
       <div className="w-full max-w-sm space-y-8">
         {/* Wordmark */}
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold tracking-tight text-zinc-50">
-            Snap<span className="text-emerald-500">Track</span>
+          <h1 className="text-hero-title text-zinc-50">
+            Snap<span className="text-accent-fresh">Track</span>
           </h1>
-          <p className="text-sm text-zinc-400">Photo-first calorie logging</p>
+          <p className="text-body-secondary text-zinc-400">Photo-first calorie logging</p>
         </div>
 
         {sent ? (
-          <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-6 text-center space-y-3">
-            <div className="mx-auto w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
-              <svg className="w-6 h-6 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <div className="surface-panel rounded-2xl p-6 text-center space-y-3">
+            <div className="mx-auto w-12 h-12 rounded-full bg-[color:color-mix(in_oklch,var(--accent-fresh)_14%,transparent)] flex items-center justify-center">
+              <svg className="w-6 h-6 text-accent-fresh" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
               </svg>
             </div>
-            <p className="text-zinc-100 font-medium">Check your email</p>
-            <p className="text-sm text-zinc-400">
+            <p className="text-screen-title text-zinc-100">Check your email</p>
+            <p className="text-body-secondary text-zinc-400">
               We sent a sign-in link to <span className="text-zinc-200">{email}</span>
             </p>
           </div>
@@ -65,7 +65,7 @@ export default function AuthScreen() {
             <button
               id="google-sign-in"
               onClick={handleGoogle}
-              className="w-full h-12 rounded-xl bg-zinc-800 hover:bg-zinc-700 active:scale-[0.98] transition-all text-zinc-100 font-medium flex items-center justify-center gap-3"
+              className="surface-button-secondary w-full h-12 rounded-xl active:scale-[0.98] transition-all text-zinc-100 font-medium flex items-center justify-center gap-3"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
@@ -79,7 +79,7 @@ export default function AuthScreen() {
             {/* Divider */}
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-zinc-800" />
-              <span className="text-xs text-zinc-400 uppercase tracking-wider">or</span>
+              <span className="text-ui-label text-zinc-400">or</span>
               <div className="flex-1 h-px bg-zinc-800" />
             </div>
 
@@ -92,13 +92,13 @@ export default function AuthScreen() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="w-full h-12 rounded-xl bg-zinc-900 border border-zinc-800 px-4 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 transition-all"
+                className="surface-field w-full h-12 rounded-xl border px-4 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 transition-all"
               />
               <button
                 id="magic-link-submit"
                 type="submit"
                 disabled={sending || !email.trim()}
-                className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none transition-all text-white font-medium"
+                className="bg-accent-primary w-full h-12 rounded-xl hover:brightness-110 active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none transition-all text-slate-950 font-medium"
               >
                 {sending ? (
                   <span className="flex items-center justify-center gap-2">
@@ -115,7 +115,7 @@ export default function AuthScreen() {
 
         {/* Error */}
         {error && (
-          <p className="text-sm text-red-300 text-center bg-red-500/10 rounded-lg py-2 px-3" role="alert">
+          <p className="text-body-secondary text-center bg-[color:color-mix(in_oklch,var(--accent-danger)_16%,transparent)] text-[color:color-mix(in_oklch,var(--accent-danger)_75%,white_25%)] rounded-lg py-2 px-3" role="alert">
             {error}
           </p>
         )}
