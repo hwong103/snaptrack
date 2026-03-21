@@ -12,14 +12,14 @@
     {
       "binding": "DB",
       "database_name": "snaptrack-db",
-      "database_id": "REPLACE_AFTER_CREATE",
+      "database_id": "b96192bb-b639-49ab-867d-05c42af1990d",
       "migrations_dir": "./workers/migrations"
     }
   ],
   "kv_namespaces": [
     {
       "binding": "TOKENS",
-      "id": "REPLACE_AFTER_CREATE"
+      "id": "30c9eb9422124409935de1f20bb28237"
     }
   ],
   "ai": {
