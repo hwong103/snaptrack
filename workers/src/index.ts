@@ -65,7 +65,21 @@ function withCors(response: Response, origin: string, env: Env): Response {
   const headers = new Headers(response.headers);
   const cors = corsHeaders(origin, env);
   Object.entries(cors).forEach(([k, v]) => headers.set(k, String(v)));
-  return new Response(response.body, { status: response.status, headers });
+  const rewritten = new Response(response.body, { status: response.status, headers });
+  const getSetCookie = (response.headers as Headers & {
+    getSetCookie?: () => string[];
+  }).getSetCookie;
+
+  if (typeof getSetCookie === 'function') {
+    for (const cookie of getSetCookie.call(response.headers)) {
+      rewritten.headers.append('Set-Cookie', cookie);
+    }
+  } else {
+    const cookie = response.headers.get('Set-Cookie');
+    if (cookie) rewritten.headers.append('Set-Cookie', cookie);
+  }
+
+  return rewritten;
 }
 
 export default {
