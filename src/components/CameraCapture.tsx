@@ -79,6 +79,7 @@ export default function CameraCapture({ onResult, onError, onCancel }: Props) {
           ref={inputRef}
           type="file"
           accept="image/*"
+          capture="environment"
           onChange={handleFile}
           className="hidden"
         />

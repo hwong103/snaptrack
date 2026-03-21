@@ -27,6 +27,28 @@ export interface SnapResult {
   notes: string;
 }
 
+async function runVision(env: Env, imageBase64: string, mimeType: string): Promise<string> {
+  console.log('Worker: Starting AI run with model @cf/meta/llama-3.2-11b-vision-instruct');
+  const result = await env.AI.run('@cf/meta/llama-3.2-11b-vision-instruct' as any, {
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image_url',
+            image_url: { url: `data:${mimeType};base64,${imageBase64}` },
+          },
+          { type: 'text', text: NUTRITION_PROMPT },
+        ],
+      },
+    ],
+  } as Parameters<typeof env.AI.run>[1]);
+
+  const raw = ((result as { response: string }).response ?? '').trim();
+  console.log('Worker: AI Response received', { length: raw.length, rawPreview: raw.slice(0, 100) });
+  return raw;
+}
+
 export async function handleSnap(
   request: Request,
   env: Env,
@@ -38,6 +60,7 @@ export async function handleSnap(
     console.error('Worker: Session check failed', e);
     return null;
   });
+
   if (!session?.user?.id) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
@@ -57,24 +80,19 @@ export async function handleSnap(
 
   let raw = '';
   try {
-    console.log('Worker: Starting AI run with model @cf/meta/llama-3.2-11b-vision-instruct');
-    const result = await env.AI.run('@cf/meta/llama-3.2-11b-vision-instruct' as any, {
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image_url',
-              image_url: { url: `data:${body.mimeType};base64,${body.imageBase64}` },
-            },
-            { type: 'text', text: NUTRITION_PROMPT },
-          ],
-        },
-      ],
-    } as Parameters<typeof env.AI.run>[1]);
-
-    raw = ((result as { response: string }).response ?? '').trim();
-    console.log('Worker: AI Response received', { length: raw.length, rawPreview: raw.slice(0, 100) });
+    try {
+      raw = await runVision(env, body.imageBase64, body.mimeType);
+    } catch (err: any) {
+      // Handle the "submit the prompt 'agree'" error (Cloudflare Workers AI 5016)
+      if (typeof err?.message === 'string' && (err.message.includes("prompt 'agree'") || err.message.includes('5016'))) {
+        console.log('Worker: License agreement required. Sending "agree"...');
+        await env.AI.run('@cf/meta/llama-3.2-11b-vision-instruct' as any, { prompt: 'agree' });
+        console.log('Worker: Agreement sent. Retrying vision task...');
+        raw = await runVision(env, body.imageBase64, body.mimeType);
+      } else {
+        throw err;
+      }
+    }
 
     // Try to extract JSON from the response, even if wrapped in markdown or extra text
     let parsed: Record<string, unknown>;
@@ -86,7 +104,7 @@ export async function handleSnap(
       // Fallback: find the first { ... } JSON object in the response
       const jsonMatch = raw.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        console.error('Workers AI snap: no JSON found in response:', raw);
+        console.error('Worker: No JSON found in response:', raw);
         return new Response(JSON.stringify({ error: 'vision_failed', detail: 'No JSON in AI response' }), {
           status: 502,
           headers: { ...corsHeaders(origin, env), 'Content-Type': 'application/json' },
