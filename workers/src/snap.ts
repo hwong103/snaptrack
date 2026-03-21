@@ -51,8 +51,10 @@ async function runVision(env: Env, imageBase64: string, mimeType: string): Promi
     responseText = result;
   } else if (result && typeof (result as any).response === 'string') {
     responseText = (result as any).response;
+  } else if (result && typeof (result as any).response === 'object') {
+    // If it's the specific Llama 3.2 Vision format where it returns an object with a response key
+    responseText = JSON.stringify((result as any).response);
   } else {
-    // Some models return objects that need stringification or have different keys
     responseText = JSON.stringify(result);
   }
 
@@ -95,14 +97,12 @@ export async function handleSnap(
     try {
       raw = await runVision(env, body.imageBase64, body.mimeType);
     } catch (err: any) {
-      // Handle the "submit the prompt 'agree'" error (Cloudflare Workers AI 5016)
       const msg = String(err?.message || '');
       if (msg.includes("prompt 'agree'") || msg.includes('5016')) {
         console.log('Worker: License agreement required. Sending "agree"...');
         try {
           await env.AI.run('@cf/meta/llama-3.2-11b-vision-instruct' as any, { prompt: 'agree' });
         } catch (e: any) {
-          // The 'agree' prompt itself might "fail" with a 5016 success message - ignore it
           console.log('Worker: Agreement response (ignoring if looks successful):', e?.message);
         }
         console.log('Worker: Agreement phase done. Retrying vision task...');
@@ -112,14 +112,11 @@ export async function handleSnap(
       }
     }
 
-    // Try to extract JSON from the response, even if wrapped in markdown or extra text
     let parsed: Record<string, unknown>;
     try {
-      // First try: strip markdown code fences and parse directly
       const cleaned = raw.replace(/```(?:json)?\s*/g, '').replace(/```/g, '').trim();
       parsed = JSON.parse(cleaned) as Record<string, unknown>;
     } catch {
-      // Fallback: find the first { ... } JSON object in the response
       const jsonMatch = raw.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         console.error('Worker: No JSON found in response:', raw);
@@ -129,6 +126,12 @@ export async function handleSnap(
         });
       }
       parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+    }
+
+    // UNWRAP 'response' key if it exists (some models wrap the entire JSON object in a 'response' key)
+    if (parsed['response'] && typeof parsed['response'] === 'object' && !Array.isArray(parsed['response'])) {
+      console.log('Worker: Unwrapping "response" key from AI JSON');
+      parsed = parsed['response'] as Record<string, unknown>;
     }
 
     if (parsed['error'] === 'no_food_detected') {
