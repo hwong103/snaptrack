@@ -33,7 +33,11 @@ export async function handleSnap(
   origin: string,
   auth: Auth,
 ): Promise<Response> {
-  const session = await auth.api.getSession({ headers: request.headers }).catch(() => null);
+  console.log('Worker: Received snap request');
+  const session = await auth.api.getSession({ headers: request.headers }).catch((e) => {
+    console.error('Worker: Session check failed', e);
+    return null;
+  });
   if (!session?.user?.id) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
@@ -51,8 +55,10 @@ export async function handleSnap(
     });
   }
 
+  let raw = '';
   try {
-    const result = await env.AI.run('@cf/llama-3.2-11b-vision-instruct' as any, {
+    console.log('Worker: Starting AI run with model @cf/meta/llama-3.2-11b-vision-instruct');
+    const result = await env.AI.run('@cf/meta/llama-3.2-11b-vision-instruct' as any, {
       messages: [
         {
           role: 'user',
@@ -67,11 +73,27 @@ export async function handleSnap(
       ],
     } as Parameters<typeof env.AI.run>[1]);
 
-    const raw = ((result as { response: string }).response ?? '')
-      .replace(/```json|```/g, '')
-      .trim();
+    raw = ((result as { response: string }).response ?? '').trim();
+    console.log('Worker: AI Response received', { length: raw.length, rawPreview: raw.slice(0, 100) });
 
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    // Try to extract JSON from the response, even if wrapped in markdown or extra text
+    let parsed: Record<string, unknown>;
+    try {
+      // First try: strip markdown code fences and parse directly
+      const cleaned = raw.replace(/```(?:json)?\s*/g, '').replace(/```/g, '').trim();
+      parsed = JSON.parse(cleaned) as Record<string, unknown>;
+    } catch {
+      // Fallback: find the first { ... } JSON object in the response
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.error('Workers AI snap: no JSON found in response:', raw);
+        return new Response(JSON.stringify({ error: 'vision_failed', detail: 'No JSON in AI response' }), {
+          status: 502,
+          headers: { ...corsHeaders(origin, env), 'Content-Type': 'application/json' },
+        });
+      }
+      parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+    }
 
     if (parsed['error'] === 'no_food_detected') {
       return new Response(JSON.stringify({ error: 'no_food_detected' }), {
@@ -91,11 +113,13 @@ export async function handleSnap(
       notes:       String(parsed['notes'] ?? ''),
     };
 
+    console.log('Worker: Returning snap result', snap.name);
+
     return new Response(JSON.stringify(snap), {
       headers: { ...corsHeaders(origin, env), 'Content-Type': 'application/json' },
     });
   } catch (err) {
-    console.error('Workers AI snap error:', err);
+    console.error('Workers AI snap error:', err, 'raw response:', raw);
     return new Response(JSON.stringify({ error: 'vision_failed' }), {
       status: 500,
       headers: { ...corsHeaders(origin, env), 'Content-Type': 'application/json' },

@@ -36,10 +36,15 @@ export default function CameraCapture({ onResult, onError, onCancel }: Props) {
     setAnalysing(true);
     setErrorState(null);
     try {
-      const { base64, mimeType } = await compressImage(file);
+      console.log('CameraCapture: Compressing image...');
+      const { base64, mimeType } = await compressImage(file, 800);
+      console.log('CameraCapture: Image compressed, size:', base64.length);
+      console.log('CameraCapture: Sending to /api/snap...');
       const result = await snap(base64, mimeType);
+      console.log('CameraCapture: Received result:', result);
       onResult(result);
     } catch (err: unknown) {
+      console.error('CameraCapture error:', err);
       const msg = (err as { data?: { error?: string } })?.data?.error;
       if (msg === 'no_food_detected') {
         setErrorState('no_food');
@@ -74,7 +79,6 @@ export default function CameraCapture({ onResult, onError, onCancel }: Props) {
           ref={inputRef}
           type="file"
           accept="image/*"
-          capture="environment"
           onChange={handleFile}
           className="hidden"
         />

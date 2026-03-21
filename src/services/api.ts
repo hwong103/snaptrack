@@ -10,14 +10,21 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { 'Content-Type': 'application/json', ...init?.headers },
     ...init,
   });
-  const data = await resp.json() as T & { error?: string };
+
   if (!resp.ok) {
-    throw Object.assign(new Error(data?.error ?? 'Request failed'), {
-      status: resp.status,
-      data,
-    });
+    let errorMsg = 'Request failed';
+    try {
+      const data = await resp.json() as { error?: string };
+      errorMsg = data?.error ?? errorMsg;
+      throw Object.assign(new Error(errorMsg), { status: resp.status, data });
+    } catch (e) {
+      if (e instanceof Error && 'status' in (e as any)) throw e;
+      const text = await resp.text().catch(() => 'No error detail');
+      throw Object.assign(new Error(text || errorMsg), { status: resp.status, data: { error: text } });
+    }
   }
-  return data;
+
+  return await resp.json() as T;
 }
 
 // ---------------------------------------------------------------------------

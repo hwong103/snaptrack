@@ -147,7 +147,10 @@ export default {
       }
 
       // SPA fallback
-      return (env.ASSETS.fetch(request as any) as any) as Response;
+      if (env.ASSETS) {
+        return (env.ASSETS.fetch(request as any) as any) as Response;
+      }
+      return new Response('Not found', { status: 404 });
     } catch (err) {
       console.error('Worker error:', err);
       return new Response(
