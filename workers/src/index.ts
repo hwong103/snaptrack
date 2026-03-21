@@ -86,8 +86,13 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin') || env.FRONTEND_URL;
-    const auth = createAuth(env, url.origin);
     const method = request.method;
+    let authInstance: ReturnType<typeof createAuth> | null = null;
+
+    function getAuth() {
+      if (!authInstance) authInstance = createAuth(env, url.origin);
+      return authInstance;
+    }
 
     if (method === 'OPTIONS') {
       return new Response(null, { headers: corsHeaders(origin, env) });
@@ -96,12 +101,12 @@ export default {
     try {
       // better-auth
       if (url.pathname.startsWith('/api/auth/')) {
-        return withCors(await auth.handler(request), origin, env);
+        return withCors(await getAuth().handler(request), origin, env);
       }
 
       // Session check
       if (url.pathname === '/api/session' && method === 'GET') {
-        const session = await auth.api.getSession({ headers: request.headers }).catch(() => null);
+        const session = await getAuth().api.getSession({ headers: request.headers }).catch(() => null);
         return new Response(
           JSON.stringify(
             session
@@ -114,31 +119,31 @@ export default {
 
       // Vision — ephemeral, no storage
       if (url.pathname === '/api/snap' && method === 'POST') {
-        return handleSnap(request, env, origin, auth);
+        return handleSnap(request, env, origin, getAuth());
       }
 
       // Food log
       if (url.pathname === '/api/log' && method === 'POST') {
-        return handleLogCreate(request, env, origin, auth);
+        return handleLogCreate(request, env, origin, getAuth());
       }
       if (url.pathname === '/api/day' && method === 'GET') {
-        return handleLogDay(request, env, origin, auth);
+        return handleLogDay(request, env, origin, getAuth());
       }
       if (url.pathname === '/api/history' && method === 'GET') {
-        return handleLogHistory(request, env, origin, auth);
+        return handleLogHistory(request, env, origin, getAuth());
       }
 
       const logMatch = url.pathname.match(/^\/api\/log\/([^/]+)$/);
       if (logMatch) {
         const id = logMatch[1]!;
-        if (method === 'DELETE') return handleLogDelete(request, env, origin, auth, id);
-        if (method === 'PATCH') return handleLogPatch(request, env, origin, auth, id);
+        if (method === 'DELETE') return handleLogDelete(request, env, origin, getAuth(), id);
+        if (method === 'PATCH') return handleLogPatch(request, env, origin, getAuth(), id);
       }
 
       // Profile
       if (url.pathname === '/api/profile') {
-        if (method === 'GET') return handleProfileGet(request, env, origin, auth);
-        if (method === 'POST') return handleProfileUpsert(request, env, origin, auth);
+        if (method === 'GET') return handleProfileGet(request, env, origin, getAuth());
+        if (method === 'POST') return handleProfileUpsert(request, env, origin, getAuth());
       }
 
       // SPA fallback
