@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { profileUpsert } from '../services/api';
 import { authClient } from '../services/authClient';
+import { StravaConnect } from './StravaConnect';
 
 interface Props {
   onSignOut: () => Promise<void>;
@@ -186,6 +187,21 @@ export default function SettingsView({ onSignOut }: Props) {
                 )}
               </button>
             </div>
+          </div>
+        </section>
+
+        <section className="section-stack">
+          <div className="section-heading">
+            <div className="section-heading-copy">
+              <p className="text-ui-label">Activity data</p>
+              <p className="text-body-secondary text-zinc-400">
+                Connect Strava to show calories burned alongside your food log.
+              </p>
+            </div>
+          </div>
+
+          <div className="surface-panel rounded-[2rem] px-5 py-5">
+            <StravaConnect onConnected={() => {}} />
           </div>
         </section>
 

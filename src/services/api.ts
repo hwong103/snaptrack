@@ -153,3 +153,60 @@ export const profileUpsert = (
     method: 'POST',
     body: JSON.stringify(body),
   });
+
+// ---------------------------------------------------------------------------
+// Strava
+// ---------------------------------------------------------------------------
+
+export interface StravaKeyStatus {
+  configured: boolean;
+  clientId: string | null;
+  updatedAt: number | null;
+}
+
+export interface StravaConnectionStatus {
+  connected: boolean;
+  athlete?: {
+    id: number;
+    name: string;
+    profile: string;
+  };
+}
+
+export interface StravaBurnedResponse {
+  connected: boolean;
+  burned_kcal: number | null;
+  activity_count?: number;
+  error?: string;
+}
+
+export const stravaApi = {
+  getKeyStatus: () =>
+    req<StravaKeyStatus>('/api/strava/keys/status'),
+
+  saveKeys: (clientId: string, clientSecret: string) =>
+    req<{ ok: boolean }>('/api/strava/keys', {
+      method: 'POST',
+      body: JSON.stringify({ clientId, clientSecret }),
+    }),
+
+  getConnectUrl: (): string => {
+    const callbackUrl = `${window.location.origin}/callback`;
+    return `/api/strava/connect?redirect_uri=${encodeURIComponent(callbackUrl)}`;
+  },
+
+  handleCallback: (code: string, state?: string) =>
+    req<{ connected: boolean; athlete: { id: number; firstname: string; lastname: string; profile: string } }>(
+      '/api/strava/callback',
+      { method: 'POST', body: JSON.stringify({ code, state }) },
+    ),
+
+  getStatus: () =>
+    req<StravaConnectionStatus>('/api/strava/status'),
+
+  disconnect: () =>
+    req<{ disconnected: boolean }>('/api/strava/disconnect', { method: 'DELETE' }),
+
+  getBurned: (date: string) =>
+    req<StravaBurnedResponse>(`/api/strava/burned?date=${date}`),
+};

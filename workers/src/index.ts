@@ -9,6 +9,15 @@ import {
   handleLogPatch,
 } from './log';
 import { handleProfileGet, handleProfileUpsert } from './profile';
+import {
+  handleSaveStravaKey,
+  handleGetStravaKeyStatus,
+  handleStravaConnect,
+  handleStravaCallback,
+  handleStravaStatus,
+  handleStravaDisconnect,
+  handleStravaBurned,
+} from './strava';
 
 export interface Env {
   ASSETS: Fetcher;
@@ -144,6 +153,35 @@ export default {
       if (url.pathname === '/api/profile') {
         if (method === 'GET') return handleProfileGet(request, env, origin, getAuth());
         if (method === 'POST') return handleProfileUpsert(request, env, origin, getAuth());
+      }
+
+      // Strava keys
+      if (url.pathname === '/api/strava/keys' && method === 'POST') {
+        return handleSaveStravaKey(request, env, origin, getAuth());
+      }
+      if (url.pathname === '/api/strava/keys/status' && method === 'GET') {
+        return handleGetStravaKeyStatus(request, env, origin, getAuth());
+      }
+
+      // Strava OAuth
+      if (url.pathname === '/api/strava/connect' && method === 'GET') {
+        return handleStravaConnect(request, env, origin, getAuth());
+      }
+      if (url.pathname === '/api/strava/callback' && method === 'POST') {
+        return handleStravaCallback(request, env, origin);
+      }
+
+      // Strava status + disconnect
+      if (url.pathname === '/api/strava/status' && method === 'GET') {
+        return handleStravaStatus(request, env, origin, getAuth());
+      }
+      if (url.pathname === '/api/strava/disconnect' && method === 'DELETE') {
+        return handleStravaDisconnect(request, env, origin, getAuth());
+      }
+
+      // Strava calories burned
+      if (url.pathname === '/api/strava/burned' && method === 'GET') {
+        return handleStravaBurned(request, env, origin, getAuth());
       }
 
       // SPA fallback

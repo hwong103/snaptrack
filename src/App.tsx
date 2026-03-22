@@ -5,6 +5,7 @@ import Onboarding from './components/Onboarding';
 import DayView from './components/DayView';
 import HistoryView from './components/HistoryView';
 import SettingsView from './components/SettingsView';
+import { StravaCallback } from './components/StravaCallback';
 
 export default function App() {
   const { user, needsOnboarding, loading, refresh } = useAuth();
@@ -35,6 +36,7 @@ export default function App() {
         <Route path="/" element={<DayView />} />
         <Route path="/history" element={<HistoryView />} />
         <Route path="/settings" element={<SettingsView onSignOut={refresh} />} />
+        <Route path="/callback" element={<StravaCallback />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

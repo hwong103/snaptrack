@@ -1,8 +1,8 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDay } from '../hooks/useDay';
-import { logCreate, logDelete, logPatch } from '../services/api';
-import type { LogEntry } from '../services/api';
+import { logCreate, logDelete, logPatch, stravaApi } from '../services/api';
+import type { LogEntry, StravaBurnedResponse } from '../services/api';
 import type { SnapResult } from '../../workers/src/snap';
 import CameraCapture from './CameraCapture';
 import SnapResultSheet from './SnapResult';
@@ -52,6 +52,7 @@ export default function DayView() {
   const [sheet, setSheet] = useState<Sheet>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [burnedData, setBurnedData] = useState<StravaBurnedResponse | null>(null);
 
   // Edit state
   const [editName, setEditName] = useState('');
@@ -69,6 +70,9 @@ export default function DayView() {
   const pct = goalKcal > 0 ? totalKcal / goalKcal : 0;
   const entryLabel = `${logs.length} ${logs.length === 1 ? 'meal' : 'meals'}`;
   const isToday = selectedDate === todayISO();
+  const hasStravaBurned = burnedData?.connected && burnedData.burned_kcal !== null;
+  const burnedKcal = burnedData?.burned_kcal ?? null;
+  const netKcal = burnedKcal !== null ? totalKcal - burnedKcal : null;
 
   const protein = logs.reduce((s, l) => s + (l.protein_g ?? 0), 0);
   const carbs = logs.reduce((s, l) => s + (l.carbs_g ?? 0), 0);
@@ -124,6 +128,23 @@ export default function DayView() {
     editBackdropRef,
     editDialogRef,
   );
+
+  useEffect(() => {
+    let active = true;
+    setBurnedData(null);
+
+    stravaApi.getBurned(selectedDate)
+      .then((result) => {
+        if (active) setBurnedData(result);
+      })
+      .catch(() => {
+        if (active) setBurnedData(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedDate]);
 
   return (
     <main ref={rootRef} className="min-h-dvh pb-[calc(env(safe-area-inset-bottom)+9rem)]">
@@ -238,6 +259,11 @@ export default function DayView() {
                     <p className="text-body-secondary text-zinc-400">
                       Goal {fmtKcal(goalKcal)} kcal for the day
                     </p>
+                    {hasStravaBurned && (
+                      <p className="text-body-secondary text-zinc-500">
+                        Remaining before exercise
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
@@ -246,6 +272,33 @@ export default function DayView() {
                     <span className="inline-chip macro-fat">{Math.round(fat)}g fat</span>
                   </div>
                 </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl bg-[color:color-mix(in_oklch,var(--bg-soft)_84%,black_16%)] px-4 py-4">
+                  <p className="text-ui-label">Eaten</p>
+                  <p className="mt-2 text-screen-title text-zinc-100">{fmtKcal(totalKcal)} kcal</p>
+                </div>
+
+                {hasStravaBurned ? (
+                  <>
+                    <div className="rounded-2xl bg-[color:color-mix(in_oklch,var(--bg-soft)_84%,black_16%)] px-4 py-4">
+                      <p className="text-ui-label">Burned</p>
+                      <p className="mt-2 text-screen-title text-zinc-100">{fmtKcal(burnedKcal ?? 0)} kcal</p>
+                    </div>
+                    <div className="rounded-2xl bg-[color:color-mix(in_oklch,var(--bg-soft)_84%,black_16%)] px-4 py-4 sm:col-span-2">
+                      <p className="text-ui-label">Net</p>
+                      <p className={`mt-2 text-screen-title ${netKcal !== null && netKcal < 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                        {fmtKcal(netKcal ?? 0)} kcal
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-2xl bg-[color:color-mix(in_oklch,var(--bg-soft)_84%,black_16%)] px-4 py-4">
+                    <p className="text-ui-label">Remaining</p>
+                    <p className="mt-2 text-screen-title text-zinc-100">{fmtKcal(remainingKcal)} kcal</p>
+                  </div>
+                )}
               </div>
             </section>
 
