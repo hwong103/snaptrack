@@ -10,12 +10,7 @@ import ManualEntry from './ManualEntry';
 import { useModalDialog } from '../hooks/useModalDialog';
 import { useGsapOverlay } from '../hooks/useGsapOverlay';
 import { useGsapReveal } from '../hooks/useGsapReveal';
-
-// Helpers
-function todayISO(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
+import { todayISO } from '../lib/date';
 
 function fmtTime(ts: number): string {
   return new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });

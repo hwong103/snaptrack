@@ -1,11 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { logDay } from '../services/api';
 import type { DayResponse } from '../services/api';
-
-function todayISO(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
+import { getLocalTimeZone, localDayRange, todayISO } from '../lib/date';
 
 export function useDay(date?: string) {
   const [data, setData] = useState<DayResponse | null>(null);
@@ -13,19 +9,21 @@ export function useDay(date?: string) {
   const [error, setError] = useState<string | null>(null);
 
   const targetDate = date ?? todayISO();
+  const { start, end } = localDayRange(targetDate);
+  const timeZone = getLocalTimeZone();
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await logDay(targetDate);
+      const result = await logDay({ date: targetDate, start, end, timeZone });
       setData(result);
     } catch {
       setError('Failed to load food log');
     } finally {
       setLoading(false);
     }
-  }, [targetDate]);
+  }, [targetDate, start, end, timeZone]);
 
   useEffect(() => { void load(); }, [load]);
 

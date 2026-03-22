@@ -19,11 +19,74 @@ interface ProfileRow {
   daily_goal_kcal: number;
 }
 
+interface HistoryLogRow {
+  logged_at: number;
+  calories: number;
+  protein_g: number | null;
+  carbs_g: number | null;
+  fat_g: number | null;
+}
+
+interface HistoryDayRow {
+  day: string;
+  total_kcal: number;
+  protein_g: number | null;
+  carbs_g: number | null;
+  fat_g: number | null;
+  entry_count: number;
+}
+
 function json(data: unknown, origin: string, env: Env, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
     headers: { ...corsHeaders(origin, env), 'Content-Type': 'application/json' },
   });
+}
+
+function getDateFormatter(timeZone: string) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+}
+
+function formatDayKey(epochSeconds: number, timeZone: string): string {
+  const parts = getDateFormatter(timeZone).formatToParts(new Date(epochSeconds * 1000));
+  const year = parts.find((part) => part.type === 'year')?.value ?? '0000';
+  const month = parts.find((part) => part.type === 'month')?.value ?? '01';
+  const day = parts.find((part) => part.type === 'day')?.value ?? '01';
+  return `${year}-${month}-${day}`;
+}
+
+function groupHistoryRows(rows: HistoryLogRow[], timeZone: string): HistoryDayRow[] {
+  const grouped = new Map<string, HistoryDayRow>();
+
+  for (const row of rows) {
+    const day = formatDayKey(row.logged_at, timeZone);
+    const existing = grouped.get(day);
+
+    if (existing) {
+      existing.total_kcal += row.calories || 0;
+      existing.protein_g = (existing.protein_g ?? 0) + (row.protein_g ?? 0);
+      existing.carbs_g = (existing.carbs_g ?? 0) + (row.carbs_g ?? 0);
+      existing.fat_g = (existing.fat_g ?? 0) + (row.fat_g ?? 0);
+      existing.entry_count += 1;
+      continue;
+    }
+
+    grouped.set(day, {
+      day,
+      total_kcal: row.calories || 0,
+      protein_g: row.protein_g ?? 0,
+      carbs_g: row.carbs_g ?? 0,
+      fat_g: row.fat_g ?? 0,
+      entry_count: 1,
+    });
+  }
+
+  return [...grouped.values()].sort((a, b) => a.day.localeCompare(b.day));
 }
 
 async function getSession(auth: Auth, request: Request) {
@@ -88,13 +151,17 @@ export async function handleLogDay(
   const session = await getSession(auth, request);
   if (!session?.user?.id) return json({ error: 'Unauthorized' }, origin, env, 401);
 
-  const date = new URL(request.url).searchParams.get('date');
+  const params = new URL(request.url).searchParams;
+  const date = params.get('date');
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return json({ error: 'Missing or invalid date (expect YYYY-MM-DD)' }, origin, env, 400);
   }
 
-  const dayStart = Math.floor(new Date(`${date}T00:00:00Z`).getTime() / 1000);
-  const dayEnd = dayStart + 86400;
+  const dayStart = Number(params.get('start'));
+  const dayEnd = Number(params.get('end'));
+  if (!Number.isFinite(dayStart) || !Number.isFinite(dayEnd) || dayEnd <= dayStart) {
+    return json({ error: 'Missing or invalid start/end range' }, origin, env, 400);
+  }
 
   const [logsResult, profile] = await Promise.all([
     env.DB.prepare(`
@@ -138,34 +205,38 @@ export async function handleLogHistory(
   const to = params.get('to');
   if (!from || !to) return json({ error: 'Missing from/to' }, origin, env, 400);
 
-  const fromTs = Math.floor(new Date(`${from}T00:00:00Z`).getTime() / 1000);
-  const toTs = Math.floor(new Date(`${to}T00:00:00Z`).getTime() / 1000) + 86400;
+  const fromTs = Number(params.get('start'));
+  const toTs = Number(params.get('end'));
+  if (!Number.isFinite(fromTs) || !Number.isFinite(toTs) || toTs <= fromTs) {
+    return json({ error: 'Missing or invalid start/end range' }, origin, env, 400);
+  }
+  const timeZone = params.get('timeZone') || 'UTC';
 
   const [rowsResult, profile] = await Promise.all([
     env.DB.prepare(`
       SELECT
-        date(logged_at, 'unixepoch') AS day,
-        SUM(calories)  AS total_kcal,
-        SUM(protein_g) AS protein_g,
-        SUM(carbs_g)   AS carbs_g,
-        SUM(fat_g)     AS fat_g,
-        COUNT(*)       AS entry_count
+        logged_at,
+        calories,
+        protein_g,
+        carbs_g,
+        fat_g
       FROM food_logs
       WHERE user_id = ? AND logged_at >= ? AND logged_at < ?
-      GROUP BY day
-      ORDER BY day ASC
-    `).bind(session.user.id, fromTs, toTs).all<Record<string, unknown>>(),
+      ORDER BY logged_at ASC
+    `).bind(session.user.id, fromTs, toTs).all<HistoryLogRow>(),
 
     env.DB.prepare(`SELECT daily_goal_kcal FROM user_profile WHERE user_id = ?`)
       .bind(session.user.id)
       .first<ProfileRow>(),
   ]);
 
+  const days = groupHistoryRows(rowsResult.results ?? [], timeZone);
+
   return json({
     from,
     to,
     goal_kcal: profile?.daily_goal_kcal ?? 2000,
-    days: rowsResult.results ?? [],
+    days,
   }, origin, env);
 }
 

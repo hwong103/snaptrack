@@ -95,11 +95,26 @@ export const logCreate = (body: Omit<LogEntry, 'id'>) =>
     body: JSON.stringify(body),
   });
 
-export const logDay = (date: string) =>
-  req<DayResponse>(`/api/day?date=${date}`);
+export const logDay = (params: {
+  date: string;
+  start: number;
+  end: number;
+  timeZone: string;
+}) =>
+  req<DayResponse>(
+    `/api/day?date=${encodeURIComponent(params.date)}&start=${params.start}&end=${params.end}&timeZone=${encodeURIComponent(params.timeZone)}`,
+  );
 
-export const logHistory = (from: string, to: string) =>
-  req<HistoryResponse>(`/api/history?from=${from}&to=${to}`);
+export const logHistory = (params: {
+  from: string;
+  to: string;
+  start: number;
+  end: number;
+  timeZone: string;
+}) =>
+  req<HistoryResponse>(
+    `/api/history?from=${encodeURIComponent(params.from)}&to=${encodeURIComponent(params.to)}&start=${params.start}&end=${params.end}&timeZone=${encodeURIComponent(params.timeZone)}`,
+  );
 
 export const logDelete = (id: string) =>
   req<{ ok: boolean }>(`/api/log/${id}`, { method: 'DELETE' });
